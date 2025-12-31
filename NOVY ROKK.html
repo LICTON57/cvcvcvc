@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<title>Nový Rok</title>
+<style>
+body {
+    margin: 0;
+    background: black;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* TITLE */
+#title {
+    margin-top: 30px;
+    font-size: 64px;
+    font-weight: bold;
+    letter-spacing: 6px;
+    z-index: 2;
+    position: relative;
+}
+
+/* CENTER AREA */
+#center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+/* HOME */
+#home {
+    display: flex;
+    gap: 40px;
+    z-index: 2;
+}
+
+button {
+    background: white;
+    color: black;
+    border: none;
+    padding: 25px 50px;
+    font-size: 26px;
+    font-weight: bold;
+    border-radius: 10px;
+    cursor: pointer;
+    z-index: 2;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+/* COUNTDOWN */
+#countdown {
+    display: none;
+    gap: 35px;
+    z-index: 2;
+}
+
+.unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.flip {
+    background: #111;
+    border-radius: 18px;
+    width: 260px;
+    height: 330px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 220px;
+    font-weight: bold;
+    box-shadow: inset 0 -14px 0 #000;
+    transition: transform 0.4s;
+}
+
+.flip.animate {
+    transform: rotateX(360deg);
+}
+
+.label {
+    margin-top: 15px;
+    font-size: 26px;
+    color: #aaa;
+    letter-spacing: 2px;
+}
+
+#message {
+    display: none;
+    font-size: 90px;
+    font-weight: bold;
+    text-align: center;
+    z-index: 2;
+    position: absolute;
+}
+
+/* SHARE BUTTON */
+#share {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: white;
+    color: black;
+    padding: 14px 22px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 2;
+}
+
+#share:hover {
+    opacity: 0.85;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+</style>
+</head>
+<body>
+
+<div id="title">NOVÝ ROK</div>
+
+<div id="center">
+
+    <!-- HOME -->
+    <div id="home">
+        <button onclick="login()">Log In</button>
+        <button onclick="skip()">Skip</button>
+    </div>
+
+    <!-- COUNTDOWN -->
+    <div id="countdown">
+        <div class="unit">
+            <div id="h" class="flip">00</div>
+            <div class="label">HODINY</div>
+        </div>
+        <div class="unit">
+            <div id="m" class="flip">00</div>
+            <div class="label">MINÚTY</div>
+        </div>
+        <div class="unit">
+            <div id="s" class="flip">00</div>
+            <div class="label">SEKUNDY</div>
+        </div>
+    </div>
+
+    <div id="message">🎉 ŠŤASTNÝ NOVÝ ROK! 🎉</div>
+
+</div>
+
+<div id="share" onclick="shareLink()">🔗 Share</div>
+
+<!-- CANVASES -->
+<canvas id="snow"></canvas>
+<canvas id="fireworks"></canvas>
+
+<script>
+function login() {
+    window.location.href = "https://accounts.google.com/AccountChooser";
+}
+
+function skip() {
+    document.getElementById("home").style.display = "none";
+    document.getElementById("countdown").style.display = "flex";
+    startCountdown();
+}
+
+function flip(el, value) {
+    if (el.innerText !== value) {
+        el.classList.remove("animate");
+        void el.offsetWidth;
+        el.innerText = value;
+        el.classList.add("animate");
+    }
+}
+
+function startCountdown() {
+    function update() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const silvester = new Date(year, 11, 31, 23, 59, 59);
+        let diff = silvester - now;
+
+        if (diff <= 0) {
+            document.getElementById("countdown").style.display = "none";
+            document.getElementById("message").style.display = "block";
+            startFireworks(15000); // 15 seconds at 0
+            return;
+        }
+
+        const hours = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, "0");
+        const minutes = String(Math.floor((diff / (1000 * 60)) % 60)).padStart(2, "0");
+        const seconds = String(Math.floor((diff / 1000) % 60)).padStart(2, "0");
+
+        flip(document.getElementById("h"), hours);
+        flip(document.getElementById("m"), minutes);
+        flip(document.getElementById("s"), seconds);
+    }
+
+    update();
+    setInterval(update, 1000);
+}
+
+// SHARE
+function shareLink() {
+    navigator.clipboard.writeText(window.location.href);
+    alert("Odkaz skopírovaný!");
+}
+
+// FIREWORKS
+const canvasFW = document.getElementById('fireworks');
+const ctxFW = canvasFW.getContext('2d');
+canvasFW.width = window.innerWidth;
+canvasFW.height = window.innerHeight;
+let fireworksArray = [];
+
+class Firework {
+    constructor(x, y, color, sizeMultiplier=1) {
+        this.x = x;
+        this.y = y;
+        this.particles = [];
+        this.color = color;
+        for (let i = 0; i < 50 * sizeMultiplier; i++) {
+            this.particles.push({
+                x: this.x,
+                y: this.y,
+                vx: (Math.random() - 0.5) * 8 * sizeMultiplier,
+                vy: (Math.random() - 0.5) * 8 * sizeMultiplier,
+                alpha: 1,
+            });
+        }
+    }
+    update() {
+        for (let p of this.particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.alpha -= 0.02;
+        }
+        this.particles = this.particles.filter(p => p.alpha > 0);
+    }
+    draw() {
+        for (let p of this.particles) {
+            ctxFW.globalAlpha = p.alpha;
+            ctxFW.fillStyle = this.color;
+            ctxFW.beginPath();
+            ctxFW.arc(p.x, p.y, 3, 0, Math.PI*2);
+            ctxFW.fill();
+        }
+        ctxFW.globalAlpha = 1;
+    }
+}
+
+function startFireworks(duration, sizeMultiplier=1) {
+    const startTime = Date.now();
+    function animate() {
+        ctxFW.clearRect(0,0,canvasFW.width,canvasFW.height);
+        if (Math.random() < 0.1 * sizeMultiplier) {
+            const colors = ['#ff0040','#ff8000','#00ff80','#40c0ff','#ff00ff'];
+            fireworksArray.push(new Firework(Math.random()*canvasFW.width, Math.random()*canvasFW.height, colors[Math.floor(Math.random()*colors.length)], sizeMultiplier));
+        }
+        for (let fw of fireworksArray) {
+            fw.update();
+            fw.draw();
+        }
+        fireworksArray = fireworksArray.filter(fw => fw.particles.length>0);
+        if (Date.now() - startTime < duration) {
+            requestAnimationFrame(animate);
+        } else {
+            ctxFW.clearRect(0,0,canvasFW.width,canvasFW.height);
+        }
+    }
+    animate();
+}
+
+// Small fireworks every 20 seconds, bigger
+setInterval(() => {
+    startFireworks(5000, 2); // 5s, sizeMultiplier=2
+}, 20000);
+
+// SNOW
+const canvasSnow = document.getElementById('snow');
+const ctxSnow = canvasSnow.getContext('2d');
+canvasSnow.width = window.innerWidth;
+canvasSnow.height = window.innerHeight;
+
+const snowflakes = [];
+for (let i = 0; i < 200; i++) {
+    snowflakes.push({
+        x: Math.random()*canvasSnow.width,
+        y: Math.random()*canvasSnow.height,
+        r: Math.random()*4 + 1,
+        speed: Math.random()*1.5 + 0.5
+    });
+}
+
+function drawSnow() {
+    ctxSnow.clearRect(0,0,canvasSnow.width,canvasSnow.height);
+    ctxSnow.fillStyle = "white";
+    ctxSnow.beginPath();
+    for (let s of snowflakes) {
+        ctxSnow.moveTo(s.x, s.y);
+        ctxSnow.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    }
+    ctxSnow.fill();
+    updateSnow();
+    requestAnimationFrame(drawSnow);
+}
+
+function updateSnow() {
+    for (let s of snowflakes) {
+        s.y += s.speed;
+        if (s.y > canvasSnow.height) {
+            s.y = 0;
+            s.x = Math.random()*canvasSnow.width;
+        }
+    }
+}
+
+// RESIZE CANVAS
+window.addEventListener('resize', () => {
+    canvasSnow.width = window.innerWidth;
+    canvasSnow.height = window.innerHeight;
+    canvasFW.width = window.innerWidth;
+    canvasFW.height = window.innerHeight;
+});
+
+drawSnow();
+</script>
+</body>
+</html>
